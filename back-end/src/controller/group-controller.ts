@@ -19,7 +19,7 @@ export class GroupController {
     try {
       return await this.groupRepository.find()
     } catch (error) {
-      return next(error)
+      return error
     }
   }
 
@@ -34,7 +34,7 @@ export class GroupController {
 
       return await this.groupRepository.save(group)
     } catch (error) {
-      return next(error)
+      return error
     }
   }
 
@@ -52,7 +52,7 @@ export class GroupController {
       group.prepareToUpdate(updategroupinput)
       return await this.groupRepository.save(group)
     } catch (error) {
-      return next(error)
+      return error
     }
   }
 
@@ -67,11 +67,11 @@ export class GroupController {
 
       return await this.groupRepository.remove(group)
     } catch (error) {
-      return next(error)
+      return error
     }
   }
 
-  async getGroupStudents(request: Request, next: NextFunction) {
+  async getGroupStudents(request: Request, response: Response, next: NextFunction) {
     try {
       // Task 1:
       // Return the list of Students that are in a Group
@@ -82,7 +82,7 @@ export class GroupController {
       }
       return await this.get_student_group_mapping(group)
     } catch (error) {
-      return next(error)
+      return error
     }
   }
 
@@ -103,7 +103,7 @@ export class GroupController {
       await Promise.all(promises);
       return await this.studentGroupRepository.find();
     } catch (error) {
-      return next(error);
+      return error;
     }
   }
 
