@@ -7,6 +7,8 @@ import { StudentRollState } from "../entity/student-roll-state.entity"
 import { CreateGroupStudentInput } from "../interface/group-student.interface"
 import { CreateGroupInput, UpdateGroupInput } from "../interface/group.interface"
 import { ltmtSymbols } from "../utils/enum"
+import { getGroupInput, getupdateGroupInput } from "./helpers"
+// import {getupdateGroupInput}
 
 export class GroupController {
   private groupRepository = getRepository(Group)
@@ -26,13 +28,7 @@ export class GroupController {
     try {
       const { body: params } = request
 
-      const createGroupInput: CreateGroupInput = {
-        name: params.name,
-        number_of_weeks: params.number_of_weeks,
-        roll_states: params.roll_states,
-        incidents: params.incidents,
-        ltmt: params.ltmt,
-      }
+      const createGroupInput: CreateGroupInput = getGroupInput(params)
 
       const group = new Group()
       group.prepareToCreate(createGroupInput)
@@ -52,16 +48,7 @@ export class GroupController {
         throw new Error("Group not found")
       }
 
-      const updategroupinput: UpdateGroupInput = {
-        id: params.id,
-        name: params.name,
-        number_of_weeks: params.number_of_weeks,
-        roll_states: params.roll_states,
-        incidents: params.incidents,
-        ltmt: params.ltmt,
-        run_at: new Date(),
-        student_count: group.student_count
-      }
+      const updategroupinput: UpdateGroupInput = getupdateGroupInput(params, group)
 
       group.prepareToUpdate(updategroupinput)
       return await this.groupRepository.save(group)
@@ -108,9 +95,9 @@ export class GroupController {
       // 2. For each group, query the student rolls to see which students match the filter for the group
       const groups = await this.groupRepository.find();
       const promises = groups.map(async (group) => {
-        const studentgroupmapping = await this.get_student_group_mapping(group);
+        const studentrollmapping = await this.get_student_group_mapping(group);
         // 3. Add the list of students that match the filter to the group
-        const student_counts = await this.pushstudentgroupmapping_to_db(studentgroupmapping, group);
+        const student_counts = await this.pushstudentgroupmapping_to_db(studentrollmapping, group);
         await this.update_group_info_in_db(group, student_counts)
       });
 
@@ -133,18 +120,18 @@ export class GroupController {
     })
 
     const rollIds = filtered_rolls.map((roll) => roll.id)
-    const studentGroupMapping = await this.studentRollStateRepository.find({
+    const studentrollmapping = await this.studentRollStateRepository.find({
       where: {
         roll_id: In(rollIds),
         state: In(group.roll_states.split(",")),
       },
     })
 
-    return studentGroupMapping
+    return studentrollmapping
   }
 
-  private async pushstudentgroupmapping_to_db(studentgroupmapping: any[], group: Group) {
-    const studentCounts = studentgroupmapping.reduce((counts, stdgrpmap) => {
+  private async pushstudentgroupmapping_to_db(studentrollmapping: any[], group: Group) {
+    const studentCounts = studentrollmapping.reduce((counts, stdgrpmap) => {
       const studentId = stdgrpmap.student_id;
       counts[studentId] = (counts[studentId] || 0) + 1;
       return counts;
@@ -155,7 +142,7 @@ export class GroupController {
         (group.ltmt === ltmtSymbols.GREATER_THAN && group.incidents < value) ||
         (group.ltmt === ltmtSymbols.LESS_THAN && group.incidents > value)
       ) {
-        return this.pushtoStudentGroupHelper(Number(key), group.id, Number(value), studentgroupmapping.length);
+        return this.pushtoStudentGroupHelper(Number(key), group.id, Number(value));
       }
       return Promise.resolve();
     });
@@ -164,13 +151,11 @@ export class GroupController {
     return Object.keys(studentCounts).length;
   }
 
-  private async pushtoStudentGroupHelper(student_id: number, group_id: number, count: number, groupstudentcount: number) {
+  private async pushtoStudentGroupHelper(student_id: number, group_id: number, count: number) {
     const createGroupStudentInput: CreateGroupStudentInput = {
       student_id: student_id,
       group_id: group_id,
-      incident_count: count,
-      run_at: new Date(),
-      student_count: groupstudentcount,
+      incident_count: count
     }
     const groupstudent = new GroupStudent()
     groupstudent.prepareToCreate(createGroupStudentInput)
@@ -185,3 +170,6 @@ export class GroupController {
     await this.groupRepository.save(group)
   }
 }
+
+
+
