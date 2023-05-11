@@ -113,7 +113,7 @@ export const Routes = [
   },
   {
     method: "get",
-    route: "/group/groupstudents",
+    route: "/group/get-students-in-group",
     controller: GroupController,
     action: "getGroupStudents",
   }

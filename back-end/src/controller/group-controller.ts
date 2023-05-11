@@ -8,7 +8,6 @@ import { CreateGroupStudentInput } from "../interface/group-student.interface"
 import { CreateGroupInput, UpdateGroupInput } from "../interface/group.interface"
 import { ltmtSymbols } from "../utils/enum"
 import { getGroupInput, getupdateGroupInput } from "./helpers"
-// import {getupdateGroupInput}
 
 export class GroupController {
   private groupRepository = getRepository(Group)
