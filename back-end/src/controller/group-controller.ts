@@ -52,16 +52,18 @@ export class GroupController {
         throw new Error("Group not found")
       }
 
-      const updateRollInput: UpdateGroupInput = {
+      const updategroupinput: UpdateGroupInput = {
         id: params.id,
         name: params.name,
         number_of_weeks: params.number_of_weeks,
         roll_states: params.roll_states,
         incidents: params.incidents,
         ltmt: params.ltmt,
+        run_at: new Date(),
+        student_count: group.student_count
       }
 
-      group.prepareToUpdate(updateRollInput)
+      group.prepareToUpdate(updategroupinput)
       return await this.groupRepository.save(group)
     } catch (error) {
       return next(error)
@@ -108,7 +110,8 @@ export class GroupController {
       const promises = groups.map(async (group) => {
         const studentgroupmapping = await this.get_student_group_mapping(group);
         // 3. Add the list of students that match the filter to the group
-        await this.pushstudentgroupmapping_to_db(studentgroupmapping, group);
+        const student_counts = await this.pushstudentgroupmapping_to_db(studentgroupmapping, group);
+        await this.update_group_info_in_db(group, student_counts)
       });
 
       await Promise.all(promises);
@@ -117,7 +120,6 @@ export class GroupController {
       return next(error);
     }
   }
-
 
   private async get_student_group_mapping(group: Group) {
     const { number_of_weeks } = group
@@ -159,7 +161,7 @@ export class GroupController {
     });
 
     await Promise.all(updatePromises);
-
+    return Object.keys(studentCounts).length;
   }
 
   private async pushtoStudentGroupHelper(student_id: number, group_id: number, count: number, groupstudentcount: number) {
@@ -173,5 +175,13 @@ export class GroupController {
     const groupstudent = new GroupStudent()
     groupstudent.prepareToCreate(createGroupStudentInput)
     await this.studentGroupRepository.save(groupstudent)
+  }
+
+  private async update_group_info_in_db(group: Group, student_counts: number) {
+    const updategroupinput: UpdateGroupInput = group
+    group["run_at"] = new Date()
+    group["student_count"] = student_counts
+    group.prepareToUpdate(updategroupinput)
+    await this.groupRepository.save(group)
   }
 }
